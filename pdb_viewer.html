@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDB Embryo Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --bg-panel: #1e1e1e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --border: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #app {
+            display: flex;
+            height: 100%;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            /* Increased width for notes */
+            background-color: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        #embryo-list {
+            list-style: none;
+            overflow-y: auto;
+            flex: 1;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .embryo-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            transition: background-color 0.2s;
+        }
+
+        .embryo-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .embryo-item.active {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        /* Annotation Section */
+        .annotation-section {
+            padding: 20px;
+            background-color: var(--bg-panel);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 300px;
+            /* Fixed height for notes area */
+        }
+
+        .annotation-header {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #note-input {
+            flex: 1;
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-primary);
+            padding: 10px;
+            resize: none;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        #note-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        #export-btn {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        #export-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .viewer-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .image-wrapper {
+            position: relative;
+            display: flex;
+            gap: 10px;
+        }
+
+        #main-image {
+            max-width: 80vw;
+            max-height: 65vh;
+            border: 1px solid var(--border);
+            background: #000;
+        }
+
+        .slider-vertical-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: center;
+        }
+
+        .slider-vertical-container input[type=range] {
+            writing-mode: bt-lr;
+            -webkit-appearance: slider-vertical;
+            width: 8px;
+            height: 300px;
+            padding: 0 5px;
+        }
+
+        .controls-container {
+            width: 100%;
+            max-width: 700px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .slider-horizontal-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            width: 100%;
+        }
+
+        .slider-wrapper {
+            position: relative;
+            width: 100%;
+            height: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Timeline Markers */
+        #timeline-markers {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 0;
+            transform: translateY(-50%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #fbbf24;
+            /* Amber for notes */
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            top: 0;
+            pointer-events: none;
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .metadata-display {
+            display: flex;
+            justify-content: space-between;
+            background: var(--bg-panel);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: monospace;
+        }
+
+        /* Range Slider Styling (Horizontal) */
+        input[type=range]:not([orient=vertical]) {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            z-index: 10;
+            /* Above markers */
+            position: relative;
+        }
+
+        input[type=range]:not([orient=vertical])::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        input[type=range]:not([orient=vertical])::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -5px;
+            box-shadow: 0 0 0 2px var(--bg-dark);
+            /* Contrast against markers */
+        }
+
+        /* Play Button */
+        .play-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--accent);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+            flex-shrink: 0;
+        }
+
+        .play-btn:active {
+            transform: scale(0.95);
+        }
+
+        .play-btn svg {
+            margin-left: 2px;
+            fill: white;
+        }
+
+        .play-btn svg path {
+            fill: white;
+        }
+
+        .play-btn.paused svg path {
+            d: path("M6 4h4v16H6V4zm8 0h4v16h-4V4z");
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Embryos (PDB)</h2>
+            </div>
+            <ul id="embryo-list" class="embryo-list">
+                <!-- Embryo items will be injected here -->
+            </ul>
+
+            <!-- Annotation Section -->
+            <div class="annotation-section">
+                <div class="annotation-header">
+                    <span>Frame Note</span>
+                    <button id="export-btn">Export Notes</button>
+                </div>
+                <textarea id="note-input" placeholder="Type a note for this frame..."></textarea>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="viewer-container">
+                <div class="image-wrapper">
+                    <img id="main-image" src="" alt="Embryo View">
+
+                    <!-- Z-Focus Slider (Vertical) -->
+                    <div class="slider-vertical-container">
+                        <label for="z-slider"
+                            style="writing-mode: vertical-rl; text-orientation: mixed; margin-bottom: 10px; font-size: 0.8rem; color: var(--text-secondary);">Z-Focus</label>
+                        <input type="range" id="z-slider" min="0" max="10" value="5" orient="vertical">
+                    </div>
+                </div>
+
+                <div class="controls-container">
+                    <!-- Playback Controls -->
+                    <div class="playback-controls" style="display: flex; align-items: center; gap: 10px; width: 100%;">
+                        <button id="play-btn" class="play-btn" aria-label="Play">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 5V19L19 12L8 5Z" fill="white" />
+                            </svg>
+                        </button>
+
+                        <select id="speed-select"
+                            style="padding: 5px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-panel); color: var(--text-primary);">
+                            <option value="400">0.5x</option>
+                            <option value="200" selected>1x</option>
+                            <option value="100">2x</option>
+                        </select>
+
+                        <!-- Time Slider (Horizontal) -->
+                        <div class="slider-horizontal-container" style="flex: 1;">
+                            <label for="time-slider"
+                                style="font-size: 0.8rem; color: var(--text-secondary);">Time</label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="time-slider" min="0" max="100" value="0">
+                                <div id="timeline-markers"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metadata Display -->
+                    <div class="metadata-display">
+                        <div class="meta-item" id="meta-embryo">Embryo: -</div>
+                        <div class="meta-item" id="meta-time">Time: -</div>
+                        <div class="meta-item" id="meta-z">Z: -</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        class PDBViewer {
+            constructor() {
+                console.log('PDBViewer initialized');
+                this.state = {
+                    embryos: [],
+                    timeline: [], // [{time: 1.0, focals: [-45, -30...]}, ...]
+                    currentEmbryoId: null,
+                    currentTimeIndex: 0,
+                    currentZIndex: 0,
+                    isPlaying: false,
+                    playbackInterval: null,
+                    playbackSpeed: 200, // ms per frame (1x)
+                    notes: {} // { timeIndex: "Note text" }
+                };
+
+                this.elements = {
+                    embryoList: document.getElementById('embryo-list'),
+                    mainImage: document.getElementById('main-image'),
+                    timeSlider: document.getElementById('time-slider'),
+                    zSlider: document.getElementById('z-slider'),
+                    playBtn: document.getElementById('play-btn'),
+                    speedSelect: document.getElementById('speed-select'),
+                    metaEmbryo: document.getElementById('meta-embryo'),
+                    metaTime: document.getElementById('meta-time'),
+                    metaZ: document.getElementById('meta-z'),
+                    noteInput: document.getElementById('note-input'),
+                    exportBtn: document.getElementById('export-btn'),
+                    timelineMarkers: document.getElementById('timeline-markers')
+                };
+
+                this.init();
+            }
+
+            async init() {
+                // Fetch Embryos
+                try {
+                    const res = await fetch('/api/embryos');
+                    if (!res.ok) throw new Error('Failed to fetch embryos');
+                    this.state.embryos = await res.json();
+                    this.renderSidebar();
+                    if (this.state.embryos.length > 0) {
+                        this.selectEmbryo(this.state.embryos[0]);
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Failed to load embryos. Is server.py running?');
+                }
+
+                this.setupListeners();
+            }
+
+            renderSidebar() {
+                this.elements.embryoList.innerHTML = '';
+                this.state.embryos.forEach(id => {
+                    const li = document.createElement('li');
+                    li.className = 'embryo-item';
+                    li.textContent = `Embryo ${id}`;
+                    li.dataset.id = id;
+                    li.onclick = () => this.selectEmbryo(id);
+                    this.elements.embryoList.appendChild(li);
+                });
+            }
+
+            async selectEmbryo(id) {
+                this.state.currentEmbryoId = id;
+                // Update sidebar active state
+                document.querySelectorAll('.embryo-item').forEach(el => {
+                    el.classList.toggle('active', el.dataset.id == id);
+                });
+
+                // Load notes for this embryo
+                this.loadNotes(id);
+
+                // Fetch Timeline
+                try {
+                    const res = await fetch(`/api/timeline?id=${id}`);
+                    this.state.timeline = await res.json();
+
+                    // Reset indices
+                    this.state.currentTimeIndex = 0;
+                    // Default to middle Z if possible
+                    if (this.state.timeline.length > 0 && this.state.timeline[0].focals.length > 0) {
+                        this.state.currentZIndex = Math.floor(this.state.timeline[0].focals.length / 2);
+                    } else {
+                        this.state.currentZIndex = 0;
+                    }
+
+                    // Configure Time Slider
+                    this.elements.timeSlider.max = this.state.timeline.length - 1;
+                    this.elements.timeSlider.value = 0;
+
+                    this.renderMarkers();
+                    this.updateView();
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            setupListeners() {
+                this.elements.timeSlider.oninput = (e) => {
+                    this.state.currentTimeIndex = parseInt(e.target.value);
+                    this.updateView();
+                };
+                this.elements.zSlider.oninput = (e) => {
+                    this.state.currentZIndex = parseInt(e.target.value);
+                    this.updateView();
+                };
+                this.elements.playBtn.onclick = () => this.togglePlayback();
+                this.elements.speedSelect.onchange = (e) => this.handleSpeedChange(e);
+                
+                // Annotation Listeners
+                this.elements.noteInput.addEventListener('input', (e) => {
+                    this.saveNote(this.state.currentTimeIndex, e.target.value);
+                });
+                this.elements.exportBtn.onclick = () => this.exportNotes();
+            }
+
+            // --- Playback Logic ---
+
+            startPlay() {
+                if (this.state.playbackInterval) clearInterval(this.state.playbackInterval);
+                this.state.isPlaying = true;
+                this.updatePlayButton();
+
+                this.state.playbackInterval = setInterval(() => {
+                    this.nextFrame();
+                }, this.state.playbackSpeed);
+            }
+
+            stopPlay() {
+                if (this.state.playbackInterval) {
+                    clearInterval(this.state.playbackInterval);
+                    this.state.playbackInterval = null;
+                }
+                this.state.isPlaying = false;
+                this.updatePlayButton();
+            }
+
+            togglePlayback() {
+                if (this.state.isPlaying) {
+                    this.stopPlay();
+                } else {
+                    // If at the end, restart
+                    if (this.state.currentTimeIndex >= this.state.timeline.length - 1) {
+                        this.state.currentTimeIndex = 0;
+                        this.elements.timeSlider.value = 0;
+                        this.updateView();
+                    }
+                    this.startPlay();
+                }
+            }
+
+            updatePlayButton() {
+                this.elements.playBtn.classList.toggle('paused', this.state.isPlaying);
+                this.elements.playBtn.setAttribute('aria-label', this.state.isPlaying ? 'Pause' : 'Play');
+            }
+
+            nextFrame() {
+                if (!this.state.timeline.length) return;
+
+                let nextIndex = this.state.currentTimeIndex + 1;
+                if (nextIndex >= this.state.timeline.length) {
+                    this.stopPlay(); // Stop at end
+                    return;
+                }
+
+                this.state.currentTimeIndex = nextIndex;
+                this.elements.timeSlider.value = nextIndex;
+                this.updateView();
+            }
+
+            handleSpeedChange(e) {
+                this.state.playbackSpeed = parseInt(e.target.value);
+                if (this.state.isPlaying) {
+                    this.startPlay(); // Restart with new speed
+                }
+            }
+
+            // --- Annotation Logic ---
+
+            loadNotes(embryoId) {
+                const saved = localStorage.getItem(`pdb_notes_${embryoId}`);
+                this.state.notes = saved ? JSON.parse(saved) : {};
+                this.elements.noteInput.value = ''; // Clear input initially
+            }
+
+            saveNote(timeIndex, text) {
+                if (!this.state.currentEmbryoId) return;
+                
+                if (text.trim() === '') {
+                    delete this.state.notes[timeIndex];
+                } else {
+                    this.state.notes[timeIndex] = text;
+                }
+                
+                localStorage.setItem(`pdb_notes_${this.state.currentEmbryoId}`, JSON.stringify(this.state.notes));
+                this.renderMarkers();
+            }
+
+            renderMarkers() {
+                this.elements.timelineMarkers.innerHTML = '';
+                const totalFrames = this.state.timeline.length;
+                if (totalFrames === 0) return;
+
+                Object.keys(this.state.notes).forEach(index => {
+                    const idx = parseInt(index);
+                    if (idx >= 0 && idx < totalFrames) {
+                        const marker = document.createElement('div');
+                        marker.className = 'timeline-marker';
+                        // Calculate percentage position
+                        // Note: range input thumb center is what matters. 
+                        // Simple percentage is usually close enough for visual indication.
+                        const percent = (idx / (totalFrames - 1)) * 100;
+                        marker.style.left = `${percent}%`;
+                        this.elements.timelineMarkers.appendChild(marker);
+                    }
+                });
+            }
+
+            exportNotes() {
+                if (!this.state.currentEmbryoId) return;
+                
+                // Prepare export data
+                const exportData = {
+                    embryoId: this.state.currentEmbryoId,
+                    exportedAt: new Date().toISOString(),
+                    notes: []
+                };
+
+                Object.keys(this.state.notes).forEach(index => {
+                    const idx = parseInt(index);
+                    if (this.state.timeline[idx]) {
+                        exportData.notes.push({
+                            timeIndex: idx,
+                            time: this.state.timeline[idx].time,
+                            note: this.state.notes[index]
+                        });
+                    }
+                });
+
+                // Create download
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", `embryo_${this.state.currentEmbryoId}_notes.json`);
+                document.body.appendChild(downloadAnchorNode); // required for firefox
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+            }
+
+            updateView() {
+                if (!this.state.timeline.length) return;
+
+                const timePoint = this.state.timeline[this.state.currentTimeIndex];
+                const focals = timePoint.focals;
+
+                // Update Z Slider range
+                this.elements.zSlider.max = focals.length - 1;
+
+                // Clamp Z index
+                if (this.state.currentZIndex >= focals.length) {
+                    this.state.currentZIndex = focals.length - 1;
+                }
+                this.elements.zSlider.value = this.state.currentZIndex;
+                const z = focals[this.state.currentZIndex];
+
+                // Update Image
+                const url = `/image?id=${this.state.currentEmbryoId}&time=${timePoint.time}&z=${z}`;
+                this.elements.mainImage.src = url;
+
+                // Update Metadata
+                this.elements.metaEmbryo.textContent = `Embryo: ${this.state.currentEmbryoId}`;
+                this.elements.metaTime.textContent = `Time: ${timePoint.time.toFixed(1)} h`;
+                this.elements.metaZ.textContent = `Z: ${z} µm`;
+
+                // Update Note Input
+                const currentNote = this.state.notes[this.state.currentTimeIndex] || '';
+                this.elements.noteInput.value = currentNote;
+            }
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            new PDBViewer();
+        });
+    </script>
+</body>
+
+</html>
