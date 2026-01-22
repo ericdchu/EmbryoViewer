@@ -101,9 +101,16 @@ class PDBRequestHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             self.send_error(500, str(e))
 
+class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+    daemon_threads = True
+
 if __name__ == "__main__":
+    # Use PORT from environment variable if available, otherwise default to 8000
+    PORT = int(os.environ.get('PORT', 8000))
+    
     # Allow address reuse to avoid "Address already in use" errors on restart
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), PDBRequestHandler) as httpd:
+    ThreadingHTTPServer.allow_reuse_address = True
+    
+    with ThreadingHTTPServer(("", PORT), PDBRequestHandler) as httpd:
         print(f"Serving at http://localhost:{PORT}")
         httpd.serve_forever()
