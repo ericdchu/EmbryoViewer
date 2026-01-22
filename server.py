@@ -104,13 +104,38 @@ class PDBRequestHandler(http.server.SimpleHTTPRequestHandler):
 class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
 
+import socket
+
 if __name__ == "__main__":
-    # Use PORT from environment variable if available, otherwise default to 8000
-    PORT = int(os.environ.get('PORT', 8000))
+    # Use PORT from environment variable if available.
+    # If not set, use 0 to let the OS pick a free port.
+    env_port = os.environ.get('PORT')
+    if env_port:
+        PORT = int(env_port)
+    else:
+        PORT = 0
     
     # Allow address reuse to avoid "Address already in use" errors on restart
     ThreadingHTTPServer.allow_reuse_address = True
     
     with ThreadingHTTPServer(("", PORT), PDBRequestHandler) as httpd:
-        print(f"Serving at http://localhost:{PORT}")
+        # Get the actual port we are listening on (useful if PORT was 0)
+        actual_port = httpd.server_address[1]
+        
+        # Find the LAN IP address
+        try:
+            # Connect to a public DNS server to determine the best local IP
+            # This doesn't actually send data, just checks routing
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            lan_ip = s.getsockname()[0]
+            s.close()
+        except Exception:
+            lan_ip = "127.0.0.1"
+
+        print(f"\n--- Embryo Viewer Started ---")
+        print(f"Local access:   http://localhost:{actual_port}/pdb_viewer.html")
+        print(f"Network access: http://{lan_ip}:{actual_port}/pdb_viewer.html")
+        print(f"-----------------------------\n")
+        
         httpd.serve_forever()
