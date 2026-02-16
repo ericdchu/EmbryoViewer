@@ -46,6 +46,36 @@
             flex-direction: column;
         }
 
+        /* Morphokinetic Panel */
+        .morpho-panel {
+            width: 140px;
+            background-color: var(--bg-panel);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 8px;
+            overflow-y: auto;
+        }
+
+        .morpho-btn {
+            padding: 10px;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .morpho-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
         .sidebar-header {
             padding: 20px;
             border-bottom: 1px solid var(--border);
@@ -316,9 +346,7 @@
         }
 
         .history-item {
-            padding: 10px;
             border-bottom: 1px solid var(--border);
-            cursor: pointer;
             border-radius: 4px;
             transition: background-color 0.2s;
             margin-bottom: 5px;
@@ -340,6 +368,143 @@
             color: var(--text-secondary);
             white-space: pre-wrap;
         }
+
+        /* Arrested State */
+        .embryo-item.arrested {
+            color: #ff4d4d;
+        }
+
+        .arrest-btn {
+            padding: 8px 16px;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .arrest-btn:hover {
+            background: #444;
+        }
+
+        .arrest-btn.active {
+            background: #ff4d4d;
+            border-color: #ff4d4d;
+            color: white;
+        }
+
+        .arrest-btn.active:hover {
+            background: #e60000;
+        }
+
+        .delete-note-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: color 0.2s, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .delete-note-btn:hover {
+            color: #ff4d4d;
+            background-color: rgba(255, 77, 77, 0.1);
+        }
+
+        .delete-note-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+            pointer-events: none;
+        }
+
+        /* Grading Controls */
+        .grading-section {
+            display: flex;
+            gap: 15px;
+            background: var(--bg-panel);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            align-items: center;
+        }
+
+        .grading-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .grading-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .grading-select {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 5px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .grading-select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* Morphokinetic Table */
+        .morpho-table-panel {
+            width: 200px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+
+
+        .morpho-table-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .morpho-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            border: 1px solid var(--border);
+            /* Exterior border */
+        }
+
+        .morpho-table th,
+        .morpho-table td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid var(--border);
+            /* Grid lines (vertical & horizontal) */
+        }
+
+        .morpho-table th {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .morpho-table td:last-child {
+            text-align: right;
+            font-family: monospace;
+        }
     </style>
 </head>
 
@@ -354,14 +519,6 @@
                 <!-- Embryo items will be injected here -->
             </ul>
 
-            <!-- Annotation Section -->
-            <div class="annotation-section">
-                <div class="annotation-header">
-                    <span>Frame Note</span>
-                    <button id="export-btn">Export Notes</button>
-                </div>
-                <textarea id="note-input" placeholder="Type a note for this frame..."></textarea>
-            </div>
         </aside>
 
         <!-- Main Content -->
@@ -379,6 +536,51 @@
                 </div>
 
                 <div class="controls-container">
+                    <!-- Grading Section -->
+                    <div class="grading-section">
+                        <div class="grading-group">
+                            <label class="grading-label">Day 3 Grade</label>
+                            <select id="day3-grade" class="grading-select">
+                                <option value="">-</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                        <div class="grading-group">
+                            <label class="grading-label">Blastocyst Grade</label>
+                            <div style="display: flex; gap: 5px;">
+                                <select id="blasto-exp" class="grading-select" title="Expansion (1-6)">
+                                    <option value="">-</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6">6</option>
+                                </select>
+                                <select id="blasto-icm" class="grading-select" title="Inner Cell Mass (A-D)">
+                                    <option value="">-</option>
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                    <option value="D">D</option>
+                                </select>
+                                <select id="blasto-te" class="grading-select" title="Trophectoderm (A-D)">
+                                    <option value="">-</option>
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                    <option value="D">D</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grading-group" style="margin-left: auto;">
+                            <label class="grading-label">Combined</label>
+                            <div id="blasto-combined" style="font-family: monospace; font-weight: 600;">-</div>
+                        </div>
+                    </div>
+
                     <!-- Playback Controls -->
                     <div class="playback-controls" style="display: flex; align-items: center; gap: 10px; width: 100%;">
                         <button id="play-btn" class="play-btn" aria-label="Play">
@@ -412,10 +614,53 @@
                         <div class="meta-item" id="meta-time">Time: -</div>
                         <div class="meta-item" id="meta-z">Z: -</div>
                     </div>
+
+                    <!-- Action Buttons -->
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button id="arrest-btn" class="arrest-btn">Arrested</button>
+                    </div>
                 </div>
             </div>
         </main>
-        </main>
+
+        <!-- Morphokinetic Panel -->
+        <aside class="morpho-panel">
+            <button id="export-btn" class="morpho-btn" style="margin-bottom: 10px; border-color: var(--accent);">Export
+                Notes</button>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 5px; text-align: center;">Events
+            </div>
+            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't2PN')">t2PN</button>
+            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 'tPNf')">tPNf</button>
+            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't0')">t0</button>
+            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't2')">t2</button>
+            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't3')">t3</button>
+            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't4')">t4</button>
+            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't5')">t5</button>
+            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't6')">t6</button>
+            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't7')">t7</button>
+            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't8')">t8</button>
+            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't9+')">t9+</button>
+            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 'tM')">tM</button>
+            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 'tSB')">tSB</button>
+            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 'tB')">tB</button>
+        </aside>
+
+        <!-- Morphokinetic Table -->
+        <aside class="morpho-table-panel">
+            <div class="morpho-table-container">
+                <table class="morpho-table">
+                    <thead>
+                        <tr>
+                            <th>Event</th>
+                            <th>Time (h)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="morpho-table-body">
+                        <!-- Rows injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </aside>
 
         <!-- History Sidebar -->
         <aside class="history-sidebar">
@@ -439,7 +684,11 @@
                     isPlaying: false,
                     playbackInterval: null,
                     playbackSpeed: 200, // ms per frame (1x)
-                    notes: {} // { timeIndex: "Note text" }
+                    playbackInterval: null,
+                    playbackSpeed: 200, // ms per frame (1x)
+                    notes: {}, // { timeIndex: "Note text" }
+                    arrested: {}, // { embryoId: true/false }
+                    grades: {} // { embryoId: { day3: null, blastocyst: { expansion: null, icm: null, te: null } } }
                 };
 
                 this.elements = {
@@ -452,21 +701,41 @@
                     metaEmbryo: document.getElementById('meta-embryo'),
                     metaTime: document.getElementById('meta-time'),
                     metaZ: document.getElementById('meta-z'),
-                    noteInput: document.getElementById('note-input'),
                     exportBtn: document.getElementById('export-btn'),
                     timelineMarkers: document.getElementById('timeline-markers'),
-                    historyList: document.getElementById('history-list')
+                    historyList: document.getElementById('history-list'),
+                    arrestBtn: document.getElementById('arrest-btn'),
+                    // Grading
+                    day3Grade: document.getElementById('day3-grade'),
+                    blastoExp: document.getElementById('blasto-exp'),
+                    blastoIcm: document.getElementById('blasto-icm'),
+                    blastoTe: document.getElementById('blasto-te'),
+                    blastoCombined: document.getElementById('blasto-combined'),
+                    // Table
+                    morphoTableBody: document.getElementById('morpho-table-body')
                 };
 
                 this.init();
             }
 
             async init() {
+                // Load Arrested State
+                const savedArrested = localStorage.getItem('pdb_arrested_state');
+                if (savedArrested) {
+                    this.state.arrested = JSON.parse(savedArrested);
+                }
+
                 // Fetch Embryos
                 try {
                     const res = await fetch('/api/embryos');
                     if (!res.ok) throw new Error('Failed to fetch embryos');
                     this.state.embryos = await res.json();
+                    // Load Grades
+                    const savedGrades = localStorage.getItem('pdb_grades');
+                    if (savedGrades) {
+                        this.state.grades = JSON.parse(savedGrades);
+                    }
+
                     this.renderSidebar();
                     if (this.state.embryos.length > 0) {
                         this.selectEmbryo(this.state.embryos[0]);
@@ -485,6 +754,9 @@
                     const li = document.createElement('li');
                     li.className = 'embryo-item';
                     li.textContent = `Embryo ${id}`;
+                    if (this.state.arrested[id]) {
+                        li.classList.add('arrested');
+                    }
                     li.dataset.id = id;
                     li.onclick = () => this.selectEmbryo(id);
                     this.elements.embryoList.appendChild(li);
@@ -500,6 +772,8 @@
 
                 // Load notes for this embryo
                 this.loadNotes(id);
+                this.updateArrestButton();
+                this.loadGrades(id);
 
                 // Fetch Timeline
                 try {
@@ -538,18 +812,24 @@
                 this.elements.playBtn.onclick = () => this.togglePlayback();
                 this.elements.speedSelect.onchange = (e) => this.handleSpeedChange(e);
 
-                // Annotation Listeners
-                this.elements.noteInput.addEventListener('input', (e) => {
-                    this.saveNote(this.state.currentTimeIndex, e.target.value);
-                });
+                this.elements.speedSelect.onchange = (e) => this.handleSpeedChange(e);
                 this.elements.exportBtn.onclick = () => this.exportNotes();
+                this.elements.arrestBtn.onclick = () => this.toggleArrested();
+
+                // Grading Listeners
+                const gradeInputs = [
+                    this.elements.day3Grade,
+                    this.elements.blastoExp,
+                    this.elements.blastoIcm,
+                    this.elements.blastoTe
+                ];
+                gradeInputs.forEach(input => {
+                    input.onchange = () => this.saveGrade();
+                });
 
                 // Keyboard Navigation
                 document.addEventListener('keydown', (e) => {
                     if (this.state.timeline.length === 0) return;
-
-                    // Avoid interfering with input
-                    if (document.activeElement === this.elements.noteInput) return;
 
                     if (e.key === 'ArrowUp') {
                         e.preventDefault();
@@ -637,13 +917,63 @@
                 }
             }
 
+            // --- Grading Logic ---
+
+            loadGrades(embryoId) {
+                const grades = this.state.grades[embryoId] || {
+                    day3: '',
+                    blastocyst: { expansion: '', icm: '', te: '' }
+                };
+
+                this.elements.day3Grade.value = grades.day3 || '';
+
+                // Blastocyst
+                const bg = grades.blastocyst || {};
+                this.elements.blastoExp.value = bg.expansion || '';
+                this.elements.blastoIcm.value = bg.icm || '';
+                this.elements.blastoTe.value = bg.te || '';
+
+                this.updateCombinedGrade();
+            }
+
+            saveGrade() {
+                if (!this.state.currentEmbryoId) return;
+
+                const grades = {
+                    day3: this.elements.day3Grade.value,
+                    blastocyst: {
+                        expansion: this.elements.blastoExp.value,
+                        icm: this.elements.blastoIcm.value,
+                        te: this.elements.blastoTe.value
+                    }
+                };
+
+                this.state.grades[this.state.currentEmbryoId] = grades;
+                this.updateCombinedGrade();
+                localStorage.setItem('pdb_grades', JSON.stringify(this.state.grades));
+            }
+
+            updateCombinedGrade() {
+                const e = this.elements.blastoExp.value;
+                const i = this.elements.blastoIcm.value;
+                const t = this.elements.blastoTe.value;
+
+                if (e && i && t) {
+                    this.elements.blastoCombined.textContent = `${e}${i}${t}`;
+                    this.elements.blastoCombined.style.color = 'var(--accent)';
+                } else {
+                    this.elements.blastoCombined.textContent = '-';
+                    this.elements.blastoCombined.style.color = 'var(--text-secondary)';
+                }
+            }
+
             // --- Annotation Logic ---
 
             loadNotes(embryoId) {
                 const saved = localStorage.getItem(`pdb_notes_${embryoId}`);
                 this.state.notes = saved ? JSON.parse(saved) : {};
-                this.elements.noteInput.value = ''; // Clear input initially
                 this.renderHistory();
+                this.renderMorphoTable();
             }
 
             saveNote(timeIndex, text) {
@@ -658,6 +988,47 @@
                 localStorage.setItem(`pdb_notes_${this.state.currentEmbryoId}`, JSON.stringify(this.state.notes));
                 this.renderMarkers();
                 this.renderHistory();
+                this.renderMorphoTable();
+            }
+
+            deleteNote(timeIndex) {
+                if (!this.state.currentEmbryoId) return;
+
+                delete this.state.notes[timeIndex];
+
+                localStorage.setItem(`pdb_notes_${this.state.currentEmbryoId}`, JSON.stringify(this.state.notes));
+                this.renderMarkers();
+                this.renderHistory();
+                this.renderMorphoTable();
+            }
+
+            renderMorphoTable() {
+                this.elements.morphoTableBody.innerHTML = '';
+                const standardEvents = ['t2PN', 'tPNf', 't0', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9+', 'tM', 'tSB', 'tB'];
+
+                // Create a map of existing events: { "t2": "4.0 h", ... }
+                // If duplicates exist, take the first one found (or last? simplified to first)
+                const eventMap = {};
+
+                Object.keys(this.state.notes).forEach(idx => {
+                    const note = this.state.notes[idx];
+                    // Clean note if it has extra chars? 
+                    // Assume exact match for now as buttons produce exact strings
+                    if (standardEvents.includes(note) && !eventMap[note]) {
+                        const normalizedTime = 4.0 + (parseInt(idx) * 0.17);
+                        eventMap[note] = normalizedTime.toFixed(1);
+                    }
+                });
+
+                standardEvents.forEach(evt => {
+                    const tr = document.createElement('tr');
+                    const timeStr = eventMap[evt] ? eventMap[evt] : '-';
+                    tr.innerHTML = `
+                        <td>${evt}</td>
+                        <td>${timeStr}</td>
+                    `;
+                    this.elements.morphoTableBody.appendChild(tr);
+                });
             }
 
             renderHistory() {
@@ -677,22 +1048,57 @@
                     const timePoint = this.state.timeline[idx];
                     if (!timePoint) return;
 
-                    // Calculate normalized time
-                    const normalizedTime = (timePoint.time - (this.state.initialTime || 0)) + 4.0;
+                    if (!timePoint) return;
+
+                    // Calculate normalized time: 4.0 + (index * 0.17)
+                    const normalizedTime = 4.0 + (idx * 0.17);
 
                     const li = document.createElement('li');
                     li.className = 'history-item';
-                    li.innerHTML = `
+                    li.style.display = 'flex';
+                    li.style.justifyContent = 'space-between';
+                    li.style.alignItems = 'center';
+                    li.style.cursor = 'default'; // cursor on parent is default
+                    li.style.padding = '5px 10px'; // Move padding to parent
+
+                    // Create clickable content wrapper
+                    const contentDiv = document.createElement('div');
+                    contentDiv.style.flex = '1';
+                    contentDiv.style.cursor = 'pointer';
+                    contentDiv.style.marginRight = '10px';
+                    contentDiv.innerHTML = `
                         <div class="history-time">Time: ${normalizedTime.toFixed(1)} h</div>
                         <div class="history-note">${note}</div>
                     `;
 
-                    li.onclick = () => {
+                    contentDiv.onclick = () => {
                         this.state.currentTimeIndex = idx;
                         this.elements.timeSlider.value = idx;
                         this.updateView();
                     };
 
+                    // Create delete button
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-note-btn';
+                    deleteBtn.ariaLabel = 'Delete note';
+                    deleteBtn.title = 'Delete note';
+                    deleteBtn.innerHTML = `
+                        <svg viewBox="0 0 24 24">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                    `;
+
+                    deleteBtn.onclick = (e) => {
+                        // Extra safety
+                        e.stopPropagation();
+                        e.preventDefault();
+                        if (confirm('Delete this annotation?')) {
+                            this.deleteNote(idx);
+                        }
+                    };
+
+                    li.appendChild(contentDiv);
+                    li.appendChild(deleteBtn);
                     this.elements.historyList.appendChild(li);
                 });
             }
@@ -720,32 +1126,39 @@
             exportNotes() {
                 if (!this.state.currentEmbryoId) return;
 
-                // Prepare export data
-                const exportData = {
-                    embryoId: this.state.currentEmbryoId,
-                    exportedAt: new Date().toISOString(),
-                    notes: []
-                };
+                // CSV Header
+                let csvContent = "Embryo ID,Normalized Time (h),Note\n";
 
-                Object.keys(this.state.notes).forEach(index => {
-                    const idx = parseInt(index);
-                    if (this.state.timeline[idx]) {
-                        exportData.notes.push({
-                            timeIndex: idx,
-                            time: this.state.timeline[idx].time,
-                            note: this.state.notes[index]
-                        });
-                    }
+                const timeIndices = Object.keys(this.state.notes)
+                    .map(k => parseInt(k))
+                    .sort((a, b) => a - b);
+
+                timeIndices.forEach(idx => {
+                    const note = this.state.notes[idx];
+                    const timePoint = this.state.timeline[idx];
+                    if (!timePoint) return;
+
+                    if (!timePoint) return;
+
+                    // Calculate normalized time: 4.0 + (index * 0.17)
+                    const normalizedTime = 4.0 + (idx * 0.17);
+
+                    // Escape note for CSV (wrap in quotes, escape inner quotes)
+                    const escapedNote = `"${note.replace(/"/g, '""')}"`;
+
+                    csvContent += `${this.state.currentEmbryoId},${normalizedTime.toFixed(1)},${escapedNote}\n`;
                 });
 
                 // Create download
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
-                const downloadAnchorNode = document.createElement('a');
-                downloadAnchorNode.setAttribute("href", dataStr);
-                downloadAnchorNode.setAttribute("download", `embryo_${this.state.currentEmbryoId}_notes.json`);
-                document.body.appendChild(downloadAnchorNode); // required for firefox
-                downloadAnchorNode.click();
-                downloadAnchorNode.remove();
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", `embryo_${this.state.currentEmbryoId}_notes.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             }
 
             updateView() {
@@ -775,20 +1188,55 @@
                 // Update Metadata
                 this.elements.metaEmbryo.textContent = `Embryo: ${this.state.currentEmbryoId}`;
 
-                // Calculate normalized time: (current - initial) + 4.0
-                const normalizedTime = (timePoint.time - (this.state.initialTime || 0)) + 4.0;
+                // Calculate normalized time: 4.0 + (index * 0.17)
+                const normalizedTime = 4.0 + (this.state.currentTimeIndex * 0.17);
                 this.elements.metaTime.textContent = `Time: ${normalizedTime.toFixed(1)} h`;
                 this.elements.metaZ.textContent = `Z: ${z} µm`;
 
-                // Update Note Input
-                const currentNote = this.state.notes[this.state.currentTimeIndex] || '';
-                this.elements.noteInput.value = currentNote;
+                this.elements.metaZ.textContent = `Z: ${z} µm`;
+            }
+
+            toggleArrested() {
+                if (!this.state.currentEmbryoId) return;
+
+                const isArrested = !!this.state.arrested[this.state.currentEmbryoId];
+                this.state.arrested[this.state.currentEmbryoId] = !isArrested;
+
+                // Save state
+                localStorage.setItem('pdb_arrested_state', JSON.stringify(this.state.arrested));
+
+                // Update UI
+                this.updateArrestButton();
+                this.updateSidebarItem(this.state.currentEmbryoId);
+            }
+
+            updateArrestButton() {
+                const isArrested = !!this.state.arrested[this.state.currentEmbryoId];
+                const btn = this.elements.arrestBtn;
+                if (isArrested) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+                btn.textContent = 'Arrested';
+            }
+
+            updateSidebarItem(id) {
+                const item = document.querySelector(`.embryo-item[data-id="${id}"]`);
+                if (item) {
+                    if (this.state.arrested[id]) {
+                        item.classList.add('arrested');
+                    } else {
+                        item.classList.remove('arrested');
+                    }
+                }
             }
         }
 
         // Initialize
+        let viewer;
         window.addEventListener('DOMContentLoaded', () => {
-            new PDBViewer();
+            viewer = new PDBViewer();
         });
     </script>
 </body>
