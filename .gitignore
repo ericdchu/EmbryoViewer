@@ -1,0 +1,10 @@
+D2019.01.06_S01372_I0521_D.pdb
+*.pdb-shm
+*.pdb-wal
+__pycache__
+.DS_Store
+annotations.db
+test_db.py
+test_blob.jpg
+test_image.jpg
+/raw_images

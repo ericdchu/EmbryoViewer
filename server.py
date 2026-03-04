@@ -20,8 +20,176 @@ class PDBRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_timeline(query)
         elif path == '/image':
             self.handle_image(query)
+        elif path == '/api/annotations/global':
+            self.handle_get_global_annotations()
+        elif path == '/api/annotations/notes':
+            self.handle_get_notes(query)
         else:
             super().do_GET()
+
+    def do_POST(self):
+        parsed_path = urllib.parse.urlparse(self.path)
+        path = parsed_path.path
+        
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        
+        try:
+            data = json.loads(post_data.decode('utf-8'))
+        except json.JSONDecodeError:
+            self.send_error(400, "Invalid JSON data")
+            return
+
+        if path == '/api/annotations/arrested':
+            self.handle_post_arrested(data)
+        elif path == '/api/annotations/grades':
+            self.handle_post_grades(data)
+        elif path == '/api/annotations/notes':
+            self.handle_post_notes(data)
+        else:
+            self.send_error(404, "Endpoint not found")
+
+    def init_annotations_db(self):
+        conn = sqlite3.connect('annotations.db')
+        c = conn.cursor()
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS embryo_data (
+                embryo_id TEXT PRIMARY KEY,
+                arrested INTEGER DEFAULT 0,
+                grades TEXT,
+                notes TEXT
+            )
+        ''')
+        conn.commit()
+        return conn
+
+    def handle_get_global_annotations(self):
+        try:
+            conn = sqlite3.connect('annotations.db')
+            c = conn.cursor()
+            c.execute("SELECT embryo_id, arrested, grades FROM embryo_data")
+            rows = c.fetchall()
+            conn.close()
+
+            arrested = {}
+            grades = {}
+            for row in rows:
+                embryo_id, is_arrested, grades_json = row
+                arrested[embryo_id] = bool(is_arrested)
+                if grades_json:
+                    try:
+                        grades[embryo_id] = json.loads(grades_json)
+                    except json.JSONDecodeError:
+                        pass
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'arrested': arrested, 'grades': grades}).encode())
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_get_notes(self, query):
+        embryo_id = query.get('id', [None])[0]
+        if not embryo_id:
+            self.send_error(400, "Missing id parameter")
+            return
+            
+        try:
+            conn = sqlite3.connect('annotations.db')
+            c = conn.cursor()
+            c.execute("SELECT notes FROM embryo_data WHERE embryo_id = ?", (embryo_id,))
+            row = c.fetchone()
+            conn.close()
+
+            notes = {}
+            if row and row[0]:
+                try:
+                    notes = json.loads(row[0])
+                except json.JSONDecodeError:
+                    pass
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(notes).encode())
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_post_arrested(self, data):
+        embryo_id = data.get('id')
+        arrested = data.get('arrested', False)
+        
+        if not embryo_id:
+            self.send_error(400, "Missing id parameter")
+            return
+
+        try:
+            conn = self.init_annotations_db()
+            c = conn.cursor()
+            c.execute('''
+                INSERT INTO embryo_data (embryo_id, arrested) 
+                VALUES (?, ?)
+                ON CONFLICT(embryo_id) DO UPDATE SET arrested=excluded.arrested
+            ''', (embryo_id, int(arrested)))
+            conn.commit()
+            conn.close()
+            
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{"status":"success"}')
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_post_grades(self, data):
+        embryo_id = data.get('id')
+        grades = data.get('grades')
+        
+        if not embryo_id or grades is None:
+            self.send_error(400, "Missing parameters")
+            return
+
+        try:
+            conn = self.init_annotations_db()
+            c = conn.cursor()
+            c.execute('''
+                INSERT INTO embryo_data (embryo_id, grades) 
+                VALUES (?, ?)
+                ON CONFLICT(embryo_id) DO UPDATE SET grades=excluded.grades
+            ''', (embryo_id, json.dumps(grades)))
+            conn.commit()
+            conn.close()
+            
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{"status":"success"}')
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_post_notes(self, data):
+        embryo_id = data.get('id')
+        notes = data.get('notes')
+        
+        if not embryo_id or notes is None:
+            self.send_error(400, "Missing parameters")
+            return
+
+        try:
+            conn = self.init_annotations_db()
+            c = conn.cursor()
+            c.execute('''
+                INSERT INTO embryo_data (embryo_id, notes) 
+                VALUES (?, ?)
+                ON CONFLICT(embryo_id) DO UPDATE SET notes=excluded.notes
+            ''', (embryo_id, json.dumps(notes)))
+            conn.commit()
+            conn.close()
+            
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{"status":"success"}')
+        except Exception as e:
+            self.send_error(500, str(e))
 
     def handle_embryos(self):
         try:

@@ -719,10 +719,16 @@
             }
 
             async init() {
-                // Load Arrested State
-                const savedArrested = localStorage.getItem('pdb_arrested_state');
-                if (savedArrested) {
-                    this.state.arrested = JSON.parse(savedArrested);
+                try {
+                    // Load Global Annotations (Arrested state and Grades)
+                    const annotationRes = await fetch('/api/annotations/global');
+                    if (annotationRes.ok) {
+                        const globalData = await annotationRes.json();
+                        this.state.arrested = globalData.arrested || {};
+                        this.state.grades = globalData.grades || {};
+                    }
+                } catch (e) {
+                    console.error("Failed to load global annotations", e);
                 }
 
                 // Fetch Embryos
@@ -730,11 +736,6 @@
                     const res = await fetch('/api/embryos');
                     if (!res.ok) throw new Error('Failed to fetch embryos');
                     this.state.embryos = await res.json();
-                    // Load Grades
-                    const savedGrades = localStorage.getItem('pdb_grades');
-                    if (savedGrades) {
-                        this.state.grades = JSON.parse(savedGrades);
-                    }
 
                     this.renderSidebar();
                     if (this.state.embryos.length > 0) {
@@ -936,7 +937,7 @@
                 this.updateCombinedGrade();
             }
 
-            saveGrade() {
+            async saveGrade() {
                 if (!this.state.currentEmbryoId) return;
 
                 const grades = {
@@ -950,7 +951,19 @@
 
                 this.state.grades[this.state.currentEmbryoId] = grades;
                 this.updateCombinedGrade();
-                localStorage.setItem('pdb_grades', JSON.stringify(this.state.grades));
+
+                try {
+                    await fetch('/api/annotations/grades', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: this.state.currentEmbryoId,
+                            grades: grades
+                        })
+                    });
+                } catch (e) {
+                    console.error('Failed to save grades', e);
+                }
             }
 
             updateCombinedGrade() {
@@ -969,14 +982,23 @@
 
             // --- Annotation Logic ---
 
-            loadNotes(embryoId) {
-                const saved = localStorage.getItem(`pdb_notes_${embryoId}`);
-                this.state.notes = saved ? JSON.parse(saved) : {};
+            async loadNotes(embryoId) {
+                try {
+                    const res = await fetch(`/api/annotations/notes?id=${embryoId}`);
+                    if (res.ok) {
+                        this.state.notes = await res.json();
+                    } else {
+                        this.state.notes = {};
+                    }
+                } catch (e) {
+                    console.error('Failed to load notes', e);
+                    this.state.notes = {};
+                }
                 this.renderHistory();
                 this.renderMorphoTable();
             }
 
-            saveNote(timeIndex, text) {
+            async saveNote(timeIndex, text) {
                 if (!this.state.currentEmbryoId) return;
 
                 if (text.trim() === '') {
@@ -985,18 +1007,42 @@
                     this.state.notes[timeIndex] = text;
                 }
 
-                localStorage.setItem(`pdb_notes_${this.state.currentEmbryoId}`, JSON.stringify(this.state.notes));
+                try {
+                    await fetch('/api/annotations/notes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: this.state.currentEmbryoId,
+                            notes: this.state.notes
+                        })
+                    });
+                } catch (e) {
+                    console.error('Failed to save notes', e);
+                }
+
                 this.renderMarkers();
                 this.renderHistory();
                 this.renderMorphoTable();
             }
 
-            deleteNote(timeIndex) {
+            async deleteNote(timeIndex) {
                 if (!this.state.currentEmbryoId) return;
 
                 delete this.state.notes[timeIndex];
 
-                localStorage.setItem(`pdb_notes_${this.state.currentEmbryoId}`, JSON.stringify(this.state.notes));
+                try {
+                    await fetch('/api/annotations/notes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: this.state.currentEmbryoId,
+                            notes: this.state.notes
+                        })
+                    });
+                } catch (e) {
+                    console.error('Failed to delete note', e);
+                }
+
                 this.renderMarkers();
                 this.renderHistory();
                 this.renderMorphoTable();
@@ -1196,14 +1242,24 @@
                 this.elements.metaZ.textContent = `Z: ${z} µm`;
             }
 
-            toggleArrested() {
+            async toggleArrested() {
                 if (!this.state.currentEmbryoId) return;
 
                 const isArrested = !!this.state.arrested[this.state.currentEmbryoId];
                 this.state.arrested[this.state.currentEmbryoId] = !isArrested;
 
-                // Save state
-                localStorage.setItem('pdb_arrested_state', JSON.stringify(this.state.arrested));
+                try {
+                    await fetch('/api/annotations/arrested', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: this.state.currentEmbryoId,
+                            arrested: !isArrested
+                        })
+                    });
+                } catch (e) {
+                    console.error('Failed to save arrested state', e);
+                }
 
                 // Update UI
                 this.updateArrestButton();
