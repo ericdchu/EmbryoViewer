@@ -198,6 +198,7 @@
         .slider-vertical-container input[type=range] {
             writing-mode: bt-lr;
             -webkit-appearance: slider-vertical;
+            appearance: slider-vertical;
             width: 8px;
             height: 300px;
             padding: 0 5px;
@@ -263,6 +264,7 @@
         /* Range Slider Styling (Horizontal) */
         input[type=range]:not([orient=vertical]) {
             -webkit-appearance: none;
+            appearance: none;
             width: 100%;
             background: transparent;
             z-index: 10;
@@ -513,7 +515,7 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>Embryos (PDB)</h2>
+                <h2>Embryos</h2>
             </div>
             <ul id="embryo-list" class="embryo-list">
                 <!-- Embryo items will be injected here -->
@@ -631,7 +633,6 @@
             </div>
             <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't2PN')">t2PN</button>
             <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 'tPNf')">tPNf</button>
-            <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't0')">t0</button>
             <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't2')">t2</button>
             <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't3')">t3</button>
             <button class="morpho-btn" onclick="viewer.saveNote(viewer.state.currentTimeIndex, 't4')">t4</button>
